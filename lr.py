@@ -89,7 +89,7 @@ def predict(row, coefficients):
 	return 1.0 / (1.0 + exp(-yhat))
  
 # Estimate logistic regression coefficients using stochastic gradient descent
-def coefficients_sgd(train, l_rate, n_epoch, eta):
+def coefficients_sgd(train, l_rate, n_epoch, eta, lbd):
 	coef = [0.0 for i in range(len(train[0]))]
 	'''
 	for epoch in range(n_epoch):
@@ -114,19 +114,32 @@ def coefficients_sgd(train, l_rate, n_epoch, eta):
 			yhat = predict(row, coef)
 			error = row[-1] - yhat
 			#coef[0] = coef[0] + l_rate * error * yhat * (1.0 - yhat)
-			coef[0] = coef[0] + l_rate * error
+			tlda = lda
+			if coef[0] < 0:
+				tlda = -lda
+			elif coef[0] == 0:
+				tlda = 0
+			coef[0] = coef[0] - l_rate * error - tlda
 			for i in range(len(row)-1):
 				#coef[i + 1] = coef[i + 1] + l_rate * error * yhat * (1.0 - yhat) * row[i]
-				coef[i + 1] = coef[i + 1] + l_rate * error * row[i]
+				tlda = lda
+				if coef[i + 1] < 0:
+					tlda = -lda
+				elif coef[i + 1] == 0:
+					tlda = 0
+				coef[i + 1] = coef[i + 1] - l_rate * error * row[i] - tlda
+			
 			if math.fabs(error) < eta:
 				print "end"
 				return coef
+			
 	return coef
  
 # Linear Regression Algorithm With Stochastic Gradient Descent
-def logistic_regression(train, test, l_rate, n_epoch, eta):
+def logistic_regression(train, test, l_rate, n_epoch, eta, lda):
 	predictions = list()
-	coef = coefficients_sgd(train, l_rate, n_epoch, eta)
+	coef = coefficients_sgd(train, l_rate, n_epoch, eta, lda)
+	print coef
 	for row in test:
 		yhat = predict(row, coef)
 		yhat = round(yhat)
@@ -146,8 +159,9 @@ normalize_dataset(dataset, minmax)
 # evaluate algorithm
 n_folds = 3
 l_rate = 0.1
-n_epoch = 1000
-eta = 0.001
-scores = evaluate_algorithm(dataset, logistic_regression, n_folds, l_rate, n_epoch, eta)
+n_epoch = 10000
+eta = 0.0000001
+lda = 0.1
+scores = evaluate_algorithm(dataset, logistic_regression, n_folds, l_rate, n_epoch, eta, lda)
 print('Scores: %s' % scores)
 print('Mean Accuracy: %.3f%%' % (sum(scores)/float(len(scores))))
